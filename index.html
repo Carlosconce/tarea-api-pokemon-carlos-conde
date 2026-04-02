@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PokeApp - Pokedex</title>
+  <style>
+    :root {
+      --red: #dc2626;
+      --dark-red: #991b1b;
+      --blue: #2563eb;
+      --screen: #020617;
+      --text: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; font-family: 'Segoe UI', sans-serif; }
+
+    body {
+      background: radial-gradient(circle, #1e293b, #020617);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .pokedex {
+      width: 100%;
+      max-width: 420px;
+      background: var(--red);
+      border-radius: 30px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      transition: background 0.5s;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .light {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: cyan;
+      box-shadow: 0 0 15px cyan;
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .screen {
+      background: var(--screen);
+      border-radius: 15px;
+      padding: 15px;
+      text-align: center;
+      min-height: 300px;
+      box-shadow: inset 0 0 20px black;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    img {
+      width: 120px;
+      margin: 10px 0;
+      transition: transform 0.3s;
+    }
+
+    img:hover { transform: scale(1.2) rotate(10deg); }
+
+    h2 { color: #facc15; }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 10px;
+      border: none;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: none;
+      background: var(--blue);
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover { transform: scale(1.1); }
+
+    .data {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .stats {
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    .stat {
+      margin-bottom: 5px;
+    }
+
+    .bar {
+      height: 8px;
+      background: #334155;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+      background: lime;
+      transition: width 1s ease-in-out;
+    }
+
+    @media (max-width: 480px) {
+      .pokedex { max-width: 95%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="pokedex" id="pokedex">
+    <div class="top">
+      <div class="light"></div>
+      <h1>POKEDEX</h1>
+    </div>
+
+    <section class="screen" id="screen">
+      <p>Busca un Pokémon...</p>
+    </section>
+
+    <div class="controls">
+      <input type="text" id="nameInput" placeholder="pikachu" />
+      <button onclick="getPokemonByName()">🔍</button>
+      <button onclick="getRandomPokemon()">🎲</button>
+    </div>
+  </main>
+
+  <script>
+    const screen = document.getElementById("screen");
+    const pokedex = document.getElementById("pokedex");
+
+    const typeColors = {
+      fire: '#f97316', water: '#38bdf8', grass: '#4ade80', electric: '#fde047',
+      psychic: '#f472b6', ice: '#67e8f9', dragon: '#818cf8', dark: '#27272a',
+      fairy: '#f9a8d4', normal: '#a3a3a3', fighting: '#b91c1c', flying: '#7dd3fc',
+      poison: '#a855f7', ground: '#ca8a04', rock: '#78716c', bug: '#84cc16', ghost: '#6d28d9', steel: '#94a3b8'
+    };
+
+    async function fetchPokemon(url) {
+      screen.innerHTML = "<p>Cargando...</p>";
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const speciesRes = await fetch(data.species.url);
+        const species = await speciesRes.json();
+
+        const type = data.types[0].type.name;
+        pokedex.style.background = typeColors[type] || '#dc2626';
+
+        const abilities = data.abilities.map(a => a.ability.name).join(", ");
+
+        const statsHTML = data.stats.map(stat => {
+          const value = stat.base_stat;
+          return `
+            <div class="stat">
+              <small>${stat.stat.name}</small>
+              <div class="bar"><div class="fill" style="width:${value}%"></div></div>
+            </div>
+          `;
+        }).join('');
+
+        screen.innerHTML = `
+          <h2>${data.name.toUpperCase()}</h2>
+          <img src="${data.sprites.front_default}" />
+          <div class="data">
+            <p><strong>Peso:</strong> ${data.weight}</p>
+            <p><strong>Altura:</strong> ${data.height}</p>
+            <p><strong>Habilidades:</strong> ${abilities}</p>
+            <p><strong>Tipo:</strong> ${type.toUpperCase()}</p>
+            <p><strong>Color:</strong> ${species.color.name}</p>
+            <p><strong>Hábitat:</strong> ${species.habitat ? species.habitat.name : "N/A"}</p>
+          </div>
+          <div class="stats">${statsHTML}</div>
+        `;
+
+        setTimeout(() => {
+          document.querySelectorAll('.fill').forEach(el => {
+            el.style.width = el.style.width;
+          });
+        }, 100);
+
+      } catch {
+        screen.innerHTML = "<p>Error al buscar Pokémon</p>";
+      }
+    }
+
+    function getPokemonByName() {
+      const name = document.getElementById("nameInput").value.toLowerCase();
+      if (!name) return;
+      fetchPokemon(`https://pokeapi.co/api/v2/pokemon/${name}`);
+    }
+
+    function getRandomPokemon() {
+      const id = Math.floor(Math.random() * 151) + 1;
+      fetchPokemon(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    }
+  </script>
+</body>
+</html>
